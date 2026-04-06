@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cancel your railway ticket using PNR number.">
+    <title>Cancel Ticket - Railway Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo"><span class="icon">🚂</span> RailwayMS</a>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Home</a></li>
+                <li><a href="/search">Search Train</a></li>
+                <li><a href="/book">Book Ticket</a></li>
+                <li><a href="/cancel" class="active">Cancel Ticket</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <span class="page-icon">❌</span>
+            <h1>Cancel Ticket</h1>
+            <p>Enter your PNR number to cancel your booking</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>🔍</span>
+                <h2>Find Ticket</h2>
+            </div>
+            <form id="findForm" onsubmit="findTicket(event)">
+                <div class="form-group full">
+                    <label for="pnrInput">Enter PNR Number</label>
+                    <input type="text" id="pnrInput" placeholder="e.g. PNR12345678" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-secondary" id="findBtn">🔍 Check Status</button>
+                </div>
+            </form>
+
+            <div id="ticketDisplay" style="display:none;"></div>
+
+            <div id="cancelAction" style="display:none; margin-top: 1.5rem;">
+                <div class="alert alert-warning">
+                    ⚠️ Are you sure you want to cancel this ticket? This action cannot be undone.
+                </div>
+                <div class="form-actions">
+                    <button onclick="confirmCancellation()" class="btn btn-danger" id="cancelBtn">❌ Confirm Cancellation</button>
+                    <button onclick="resetPage()" class="btn btn-outline">Keep Ticket</button>
+                </div>
+            </div>
+
+            <div id="messageBox"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 <strong>Railway Management System</strong> — Built for Academic Project</p>
+    </footer>
+
+    <script>
+        let currentPNR = '';
+
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        async function findTicket(e) {
+            e.preventDefault();
+            const pnr = document.getElementById('pnrInput').value.trim();
+            const btn = document.getElementById('findBtn');
+            const box = document.getElementById('messageBox');
+            const display = document.getElementById('ticketDisplay');
+            const action = document.getElementById('cancelAction');
+
+            box.innerHTML = '';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Searching...';
+
+            try {
+                const res = await fetch(`/api/tickets/${pnr}`);
+                const data = await res.json();
+
+                if (data.success) {
+                    const t = data.data;
+                    currentPNR = t.pnr;
+                    display.style.display = 'block';
+                    display.innerHTML = `
+                        <div class="ticket-card" style="margin-top: 1.5rem;">
+                            <div class="ticket-header">
+                                <div class="pnr">${t.pnr}</div>
+                                <span class="status ${t.status.toLowerCase()}">${t.status}</span>
+                            </div>
+                            <div class="ticket-details">
+                                <div class="ticket-detail-item">
+                                    <span class="label">Passenger</span>
+                                    <span class="value">${t.passengerName}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Train</span>
+                                    <span class="value">${t.trainNo} — ${t.trainName}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Route</span>
+                                    <span class="value">${t.source} → ${t.destination}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Status</span>
+                                    <span class="value">${t.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (t.status === 'Confirmed') {
+                        action.style.display = 'block';
+                    } else {
+                        action.style.display = 'none';
+                        box.innerHTML = '<div class="alert alert-info">ℹ️ This ticket is already cancelled.</div>';
+                    }
+                } else {
+                    display.style.display = 'none';
+                    action.style.display = 'none';
+                    box.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+                }
+            } catch (err) {
+                box.innerHTML = '<div class="alert alert-error">⚠️ Error fetching ticket details.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Check Status';
+            }
+        }
+
+        async function confirmCancellation() {
+            const btn = document.getElementById('cancelBtn');
+            const box = document.getElementById('messageBox');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Cancelling...';
+
+            try {
+                const res = await fetch('/api/tickets/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pnr: currentPNR })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    box.innerHTML = '<div class="alert alert-success">✅ ' + data.message + '</div>';
+                    document.getElementById('cancelAction').style.display = 'none';
+                    findTicket({ preventDefault: () => {} }); // Refresh ticket display
+                } else {
+                    box.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+                }
+            } catch (err) {
+                box.innerHTML = '<div class="alert alert-error">⚠️ Cancellation failed.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '❌ Confirm Cancellation';
+            }
+        }
+
+        function resetPage() {
+            document.getElementById('findForm').reset();
+            document.getElementById('ticketDisplay').style.display = 'none';
+            document.getElementById('cancelAction').style.display = 'none';
+            document.getElementById('messageBox').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

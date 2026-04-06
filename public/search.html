@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Search trains by source and destination stations.">
+    <title>Search Trains - Railway Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo"><span class="icon">🚂</span> RailwayMS</a>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Home</a></li>
+                <li><a href="/search" class="active">Search Train</a></li>
+                <li><a href="/book">Book Ticket</a></li>
+                <li><a href="/cancel">Cancel Ticket</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <span class="page-icon">🔍</span>
+            <h1>Search Trains</h1>
+            <p>Find available trains between two stations</p>
+        </div>
+
+        <div class="card">
+            <form id="searchForm" onsubmit="searchTrains(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="source">From Station</label>
+                        <input type="text" id="source" placeholder="e.g. Delhi" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="destination">To Station</label>
+                        <input type="text" id="destination" placeholder="e.g. Mumbai" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="searchBtn">🔍 Search Trains</button>
+                    <button type="button" class="btn btn-outline" onclick="showAllTrains()">📋 View All Trains</button>
+                </div>
+            </form>
+
+            <div id="results" class="results-container" style="display:none;">
+                <h3>
+                    Search Results
+                    <span class="results-count" id="resultCount">0</span>
+                </h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Train No</th>
+                                <th>Train Name</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Available Seats</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="noResults" style="display:none;">
+                <div class="empty-state">
+                    <div class="icon">🚫</div>
+                    <p>No trains found for this route. Try different stations.</p>
+                </div>
+            </div>
+
+            <div id="messageBox"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 <strong>Railway Management System</strong> — Built for Academic Project</p>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        function getSeatBadge(available, total) {
+            const pct = (available / total) * 100;
+            if (available === 0) return `<span class="badge badge-full">Full</span>`;
+            if (pct < 25) return `<span class="badge badge-low">${available} left</span>`;
+            return `<span class="badge badge-available">${available} available</span>`;
+        }
+
+        function renderTrains(trains) {
+            const results = document.getElementById('results');
+            const noResults = document.getElementById('noResults');
+            const tbody = document.getElementById('resultsBody');
+            const count = document.getElementById('resultCount');
+
+            if (trains.length === 0) {
+                results.style.display = 'none';
+                noResults.style.display = 'block';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            results.style.display = 'block';
+            count.textContent = trains.length;
+
+            tbody.innerHTML = trains.map(t => `
+                <tr>
+                    <td><strong>${t.trainNo}</strong></td>
+                    <td>${t.name}</td>
+                    <td>${t.source}</td>
+                    <td>${t.destination}</td>
+                    <td>${getSeatBadge(t.availableSeats, t.totalSeats)}</td>
+                    <td>
+                        ${t.availableSeats > 0
+                            ? `<a href="/book?train=${t.trainNo}" class="btn btn-primary btn-sm">Book</a>`
+                            : `<button class="btn btn-outline btn-sm" disabled>Full</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function searchTrains(e) {
+            e.preventDefault();
+            const source = document.getElementById('source').value.trim();
+            const destination = document.getElementById('destination').value.trim();
+            const btn = document.getElementById('searchBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Searching...';
+
+            try {
+                const res = await fetch(`/api/trains/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`);
+                const data = await res.json();
+                renderTrains(data.data || []);
+            } catch (err) {
+                document.getElementById('messageBox').innerHTML =
+                    '<div class="alert alert-error">⚠️ Failed to search trains. Please try again.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Search Trains';
+            }
+        }
+
+        async function showAllTrains() {
+            try {
+                const res = await fetch('/api/trains');
+                const data = await res.json();
+                renderTrains(data.data || []);
+            } catch (err) {
+                document.getElementById('messageBox').innerHTML =
+                    '<div class="alert alert-error">⚠️ Failed to load trains.</div>';
+            }
+        }
+    </script>
+</body>
+</html>

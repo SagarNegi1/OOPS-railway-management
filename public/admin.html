@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin dashboard to manage trains and routes.">
+    <title>Admin Dashboard - Railway Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo"><span class="icon">🚂</span> RailwayMS</a>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Home</a></li>
+                <li><a href="/search">Search Train</a></li>
+                <li><a href="/book">Book Ticket</a></li>
+                <li><a href="/cancel">Cancel Ticket</a></li>
+                <li><a href="/admin" class="active">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <!-- Admin Login Section -->
+        <div id="loginSection" class="admin-login-card">
+            <div class="page-header">
+                <span class="page-icon">🔐</span>
+                <h1>Admin Login</h1>
+                <p>Enter credentials to access manager dashboard</p>
+            </div>
+            <div class="card">
+                <form id="adminLoginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" placeholder="e.g. admin" required>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="e.g. admin123" required>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn btn-primary" id="loginBtn">🔓 Login to Dashboard</button>
+                    </div>
+                </form>
+                <div id="loginMessage"></div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Section -->
+        <div id="adminDashboard" style="display:none;">
+            <div class="page-header">
+                <span class="page-icon">📊</span>
+                <h1>Admin Dashboard</h1>
+                <p>Manage trains, routes, and seat inventory</p>
+            </div>
+
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="switchTab('manageTrains', this)">📋 Manage Trains</button>
+                <button class="admin-tab" onclick="switchTab('addTrain', this)">➕ Add New Train</button>
+            </div>
+
+            <!-- Tab: Manage Trains -->
+            <div id="manageTrains" class="admin-section active">
+                <div class="card">
+                    <div class="card-header">
+                        <span>🚆</span>
+                        <h2>Current Train List</h2>
+                    </div>
+                    <div id="trainList" class="results-container">
+                        <!-- Loaded via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Add Train -->
+            <div id="addTrain" class="admin-section">
+                <div class="card">
+                    <div class="card-header">
+                        <span>📝</span>
+                        <h2>Add New Train Route</h2>
+                    </div>
+                    <form id="addTrainForm" onsubmit="handleAddTrain(event)">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="newTrainNo">Train Number</label>
+                                <input type="number" id="newTrainNo" placeholder="e.g. 111" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newTrainName">Train Name</label>
+                                <input type="text" id="newTrainName" placeholder="e.g. Express" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newSource">Source Station</label>
+                                <input type="text" id="newSource" placeholder="e.g. Delhi" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newDest">Destination Station</label>
+                                <input type="text" id="newDest" placeholder="e.g. Mumbai" required>
+                            </div>
+                            <div class="form-group full">
+                                <label for="newSeats">Total Seats</label>
+                                <input type="number" id="newSeats" placeholder="e.g. 100" required>
+                            </div>
+                        </div>
+                        <div class="form-actions" style="margin-top: 1.5rem;">
+                            <button type="submit" class="btn btn-primary" id="addBtn">➕ Create Train</button>
+                        </div>
+                    </form>
+                    <div id="addMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 <strong>Railway Management System</strong> — Built for Academic Project</p>
+    </footer>
+
+    <script>
+        let isLoggedIn = false;
+
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+            if(tabId === 'manageTrains') loadTrainsList();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const msg = document.getElementById('loginMessage');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    isLoggedIn = true;
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('adminDashboard').style.display = 'block';
+                    loadTrainsList();
+                } else {
+                    msg.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+                }
+            } catch (err) {
+                msg.innerHTML = '<div class="alert alert-error">⚠️ Connection error. Check server status.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔓 Login to Dashboard';
+            }
+        }
+
+        async function loadTrainsList() {
+            const list = document.getElementById('trainList');
+            list.innerHTML = '<div class="empty-state"><span class="spinner" style="border-top-color: var(--primary)"></span> Loading...</div>';
+
+            try {
+                const res = await fetch('/api/trains');
+                const data = await res.json();
+                
+                if (data.success && data.data.length > 0) {
+                    list.innerHTML = data.data.map(t => `
+                        <div class="train-list-item">
+                            <div class="train-info">
+                                <h4>${t.trainNo} — ${t.name}</h4>
+                                <p>${t.source} ➔ ${t.destination} | ${t.availableSeats}/${t.totalSeats} seats</p>
+                            </div>
+                            <div class="train-actions">
+                                <button onclick="deleteTrain(${t.trainNo})" class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<div class="empty-state"><div class="icon">🚆</div><p>No trains available.</p></div>';
+                }
+            } catch (err) {
+                list.innerHTML = '<div class="alert alert-error">⚠️ Error loading trains.</div>';
+            }
+        }
+
+        async function handleAddTrain(e) {
+            e.preventDefault();
+            const btn = document.getElementById('addBtn');
+            const msg = document.getElementById('addMessage');
+
+            const body = {
+                trainNo: document.getElementById('newTrainNo').value,
+                name: document.getElementById('newTrainName').value,
+                source: document.getElementById('newSource').value,
+                destination: document.getElementById('newDest').value,
+                totalSeats: document.getElementById('newSeats').value
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+            try {
+                const res = await fetch('/api/admin/trains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    msg.innerHTML = '<div class="alert alert-success">✅ ' + data.message + '</div>';
+                    document.getElementById('addTrainForm').reset();
+                    setTimeout(() => switchTab('manageTrains', document.querySelector('.admin-tab')), 1500);
+                } else {
+                    msg.innerHTML = '<div class="alert alert-error">❌ ' + data.message + '</div>';
+                }
+            } catch (err) {
+                msg.innerHTML = '<div class="alert alert-error">⚠️ Add failed.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '➕ Create Train';
+            }
+        }
+
+        async function deleteTrain(trainNo) {
+            if (!confirm(`Are you sure you want to delete train ${trainNo}?`)) return;
+            
+            try {
+                const res = await fetch(`/api/admin/trains/${trainNo}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) loadTrainsList();
+                else alert(data.message);
+            } catch (err) {
+                alert('Delete failed.');
+            }
+        }
+    </script>
+</body>
+</html>

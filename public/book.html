@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Book train tickets with instant PNR confirmation.">
+    <title>Book Ticket - Railway Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo"><span class="icon">🚂</span> RailwayMS</a>
+            <button class="hamburger" onclick="toggleMenu()">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Home</a></li>
+                <li><a href="/search">Search Train</a></li>
+                <li><a href="/book" class="active">Book Ticket</a></li>
+                <li><a href="/cancel">Cancel Ticket</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <span class="page-icon">🎟️</span>
+            <h1>Book Ticket</h1>
+            <p>Fill in passenger details to book your train ticket</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>📝</span>
+                <h2>Passenger Information</h2>
+            </div>
+            <form id="bookForm" onsubmit="bookTicket(event)">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="trainSelect">Select Train</label>
+                        <select id="trainSelect" required>
+                            <option value="">— Loading trains... —</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="passengerName">Passenger Name</label>
+                        <input type="text" id="passengerName" placeholder="Enter full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" placeholder="Enter age" min="1" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" required>
+                            <option value="">— Select Gender —</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="bookBtn">🎟️ Book Ticket</button>
+                    <a href="/search" class="btn btn-outline">🔍 Search Trains</a>
+                </div>
+            </form>
+
+            <div id="messageBox"></div>
+            <div id="ticketResult"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 <strong>Railway Management System</strong> — Built for Academic Project</p>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        // Load trains into dropdown
+        async function loadTrains() {
+            try {
+                const res = await fetch('/api/trains');
+                const data = await res.json();
+                const select = document.getElementById('trainSelect');
+                select.innerHTML = '<option value="">— Select a Train —</option>';
+                data.data.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.trainNo;
+                    opt.textContent = `${t.trainNo} - ${t.name} (${t.source} → ${t.destination}) [${t.availableSeats} seats]`;
+                    if (t.availableSeats === 0) {
+                        opt.disabled = true;
+                        opt.textContent += ' — FULL';
+                    }
+                    select.appendChild(opt);
+                });
+
+                // Auto-select train if coming from search page
+                const params = new URLSearchParams(window.location.search);
+                const trainNo = params.get('train');
+                if (trainNo) {
+                    select.value = trainNo;
+                }
+            } catch (err) {
+                document.getElementById('trainSelect').innerHTML =
+                    '<option value="">— Failed to load trains —</option>';
+            }
+        }
+
+        async function bookTicket(e) {
+            e.preventDefault();
+            const btn = document.getElementById('bookBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Booking...';
+
+            const body = {
+                trainNo: document.getElementById('trainSelect').value,
+                passengerName: document.getElementById('passengerName').value.trim(),
+                age: document.getElementById('age').value,
+                gender: document.getElementById('gender').value
+            };
+
+            try {
+                const res = await fetch('/api/tickets/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const t = data.data;
+                    document.getElementById('messageBox').innerHTML =
+                        '<div class="alert alert-success">✅ ' + data.message + '</div>';
+                    document.getElementById('ticketResult').innerHTML = `
+                        <div class="ticket-card">
+                            <div class="ticket-header">
+                                <div class="pnr">${t.pnr}</div>
+                                <span class="status confirmed">${t.status}</span>
+                            </div>
+                            <div class="ticket-details">
+                                <div class="ticket-detail-item">
+                                    <span class="label">Passenger</span>
+                                    <span class="value">${t.passengerName}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Age / Gender</span>
+                                    <span class="value">${t.age} / ${t.gender}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Train</span>
+                                    <span class="value">${t.trainNo} — ${t.trainName}</span>
+                                </div>
+                                <div class="ticket-detail-item">
+                                    <span class="label">Route</span>
+                                    <span class="value">${t.source} → ${t.destination}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('bookForm').reset();
+                    loadTrains(); // Refresh seat counts
+                } else {
+                    document.getElementById('messageBox').innerHTML =
+                        '<div class="alert alert-error">❌ ' + data.message + '</div>';
+                    document.getElementById('ticketResult').innerHTML = '';
+                }
+            } catch (err) {
+                document.getElementById('messageBox').innerHTML =
+                    '<div class="alert alert-error">⚠️ Booking failed. Please try again.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🎟️ Book Ticket';
+            }
+        }
+
+        loadTrains();
+    </script>
+</body>
+</html>
