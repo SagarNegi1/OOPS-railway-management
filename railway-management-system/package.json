@@ -1,0 +1,13 @@
+{
+  "name": "railway-management-system",
+  "version": "1.0.0",
+  "description": "Railway Management System with file-based storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

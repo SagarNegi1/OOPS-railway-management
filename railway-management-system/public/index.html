@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Railway Management System - Search trains, book tickets, and manage your railway travel efficiently.">
+    <title>Railway Management System</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <span class="icon">🚂</span>
+                RailwayMS
+            </a>
+            <button class="hamburger" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/search">Search Train</a></li>
+                <li><a href="/book">Book Ticket</a></li>
+                <li><a href="/cancel">Cancel Ticket</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <span class="train-icon">🚄</span>
+            <h1>Railway <span>Management</span> System</h1>
+            <p>Search trains, book tickets, and manage your journey — all in one place. Fast, reliable, and simple.</p>
+            <a href="/search" class="btn btn-primary">
+                🔍 Search Trains
+            </a>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number" id="trainCount">10</div>
+                    <div class="stat-label">Active Trains</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="routeCount">10</div>
+                    <div class="stat-label">Routes Available</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="seatCount">2180</div>
+                    <div class="stat-label">Total Seats</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-section">
+        <div class="section-header">
+            <h2>What You Can Do</h2>
+            <p>Explore all the features of our Railway Management System</p>
+        </div>
+        <div class="features-grid">
+            <a href="/search" class="feature-card">
+                <div class="icon blue">🔍</div>
+                <h3>Search Trains</h3>
+                <p>Find trains between any two stations with real-time seat availability information.</p>
+            </a>
+            <a href="/book" class="feature-card">
+                <div class="icon orange">🎟️</div>
+                <h3>Book Tickets</h3>
+                <p>Book your train tickets instantly and receive a unique PNR number for your journey.</p>
+            </a>
+            <a href="/cancel" class="feature-card">
+                <div class="icon red">❌</div>
+                <h3>Cancel Tickets</h3>
+                <p>Cancel your booking easily using your PNR number. Seats are automatically restored.</p>
+            </a>
+            <a href="/admin" class="feature-card">
+                <div class="icon green">📊</div>
+                <h3>Admin Panel</h3>
+                <p>Manage trains, update seats, and oversee all operations from the admin dashboard.</p>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 <strong>Railway Management System</strong> — Built for Academic Project</p>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('open');
+        }
+
+        // Load dynamic stats
+        fetch('/api/trains')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('trainCount').textContent = data.data.length;
+                    document.getElementById('routeCount').textContent = data.data.length;
+                    const totalSeats = data.data.reduce((sum, t) => sum + t.totalSeats, 0);
+                    document.getElementById('seatCount').textContent = totalSeats.toLocaleString();
+                }
+            })
+            .catch(() => {});
+    </script>
+</body>
+</html>
