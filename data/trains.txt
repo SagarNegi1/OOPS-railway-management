@@ -1,0 +1,10 @@
+101|Rajdhani Express|Delhi|Mumbai|200|178
+102|Shatabdi Express|Delhi|Chandigarh|150|120
+103|Duronto Express|Mumbai|Kolkata|250|200
+104|Garib Rath|Delhi|Patna|300|275
+105|Humsafar Express|Bangalore|Chennai|180|149
+106|Tejas Express|Mumbai|Goa|120|95
+107|Vande Bharat|Delhi|Varanasi|200|160
+108|Jan Shatabdi|Lucknow|Delhi|250|230
+109|Sampark Kranti|Jaipur|Delhi|180|170
+110|Kerala Express|Delhi|Trivandrum|350|300
